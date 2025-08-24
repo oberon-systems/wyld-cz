@@ -1,0 +1,29 @@
+[project]
+name = "wyld-cz"
+version = "0.1.0"
+description = "A custom rules sets for commitizen"
+readme = "README.md"
+authors = [
+    { name = "zombig", email = "me@zombig.name" }
+]
+requires-python = ">=3.12"
+dependencies = ["commitizen==3.29.1"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.entry-points."commitizen.plugin"]
+wyld_cz = "wyld_cz.base:WyldCommitizen"
+
+[project.urls]
+Repository = "https://github.com/oberon-systems/wyld-cz"
+Issues = "https://github.com/oberon-systems/wyld-cz/issues"
+
+[build-system]
+requires = ["uv_build>=0.8.13,<0.9.0"]
+build-backend = "uv_build"
