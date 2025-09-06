@@ -7,5 +7,5 @@ official [documentation](https://commitizen-tools.github.io/commitizen/customiza
 
 ## Contributing
 
-This repo, so as others, provide in-built development environment.
-To install and enable this environment just run `make`.
+This repo, so as others, using a `spellbook` developer console
+https://github.com/oberon-systems/spellbook
