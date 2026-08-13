@@ -18,6 +18,8 @@ all
 # https://github.com/markdownlint/markdownlint/blob/master/docs/creating_styles.md#parameters
 
 exclude_rule 'MD001' # Header levels should only increment by one level at a time
+exclude_rule 'MD002' # First header should be a top level header
+exclude_rule 'MD024' # Multiple headers with the same content
 exclude_rule 'MD004' # Unordered list style
 exclude_rule 'MD007' # Unordered list indentation
 exclude_rule 'MD029' # Ordered list item prefix
