@@ -1,7 +1,18 @@
+from collections.abc import Mapping
+from typing import Any
+
 from commitizen.cz.base import BaseCommitizen
-from commitizen.defaults import Questions
+from commitizen.question import CzQuestion
 
 from .utils import fmt_body
+
+COMMIT_TYPES = {
+    'fix': 'A bug fix',
+    'feat': 'A new feature',
+    'build': 'Changes with ci/cd',
+    'docs': 'Documentation only changes',
+    'refactor': 'Code change that neither fixes a bug nor adds a feature',
+}
 
 
 class WyldCommitizen(BaseCommitizen):
@@ -9,7 +20,7 @@ class WyldCommitizen(BaseCommitizen):
     Provide custom commitezen templates.
     """
 
-    def questions(self) -> Questions:
+    def questions(self) -> list[CzQuestion]:
         """Questions regarding the commit message."""
         questions = [
             {
@@ -17,15 +28,8 @@ class WyldCommitizen(BaseCommitizen):
                 'name': 'type',
                 'message': 'Select the type of change:',
                 'choices': [
-                    {'value': 'fix', 'name': 'fix: A bug fix'},
-                    {'value': 'feat', 'name': 'feat: A new feature'},
-                    {'value': 'build', 'name': 'build: Changes with ci/cd'},
-                    {'value': 'docs', 'name': 'docs: Documentation only changes'},
-                    {
-                        'value': 'refactor',
-                        'name': 'refactor: Code change that neither fixes '
-                                'a bug nor adds a feature',
-                    },
+                    {'value': name, 'name': f'{name}: {description}'}
+                    for name, description in COMMIT_TYPES.items()
                 ],
             },
             {
@@ -51,7 +55,7 @@ class WyldCommitizen(BaseCommitizen):
         ]
         return questions
 
-    def message(self, answers: dict) -> str:
+    def message(self, answers: Mapping[str, Any]) -> str:
         """Generate the message with the given answers."""
         message = (
             f"[{answers['type']}]"
@@ -93,6 +97,11 @@ class WyldCommitizen(BaseCommitizen):
 
                 [issue]
         """
+
+    def schema_pattern(self) -> str:
+        """Regex matching the schema, used by `cz check`."""
+        types = '|'.join(COMMIT_TYPES)
+        return rf'^\[({types})\]\[[^\]]+\]: .+'
 
     def info(self) -> str:
         """Explanation of the commit rules. (OPTIONAL)

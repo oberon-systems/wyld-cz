@@ -117,9 +117,13 @@ repos:
   - id: check-useless-excludes
   repo: meta
 - hooks:
-  - id: commitizen
-  - id: commitizen-branch
+  - additional_dependencies:
+    - wyld-cz
+    id: commitizen
+  - additional_dependencies:
+    - wyld-cz
+    id: commitizen-branch
     stages:
     - pre-push
   repo: https://github.com/commitizen-tools/commitizen
-  rev: v4.8.3
+  rev: v4.17.0
