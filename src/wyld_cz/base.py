@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from commitizen.cz.base import BaseCommitizen
+from commitizen.defaults import MINOR, PATCH
 from commitizen.question import CzQuestion
 
 from .utils import fmt_body
@@ -14,11 +15,39 @@ COMMIT_TYPES = {
     'refactor': 'Code change that neither fixes a bug nor adds a feature',
 }
 
+CHANGE_TYPES = {
+    'feat': 'Features',
+    'fix': 'Bug Fixes',
+    'refactor': 'Refactor',
+    'build': 'Build',
+    'docs': 'Documentation',
+}
+
+TYPES_RE = '|'.join(COMMIT_TYPES)
+
 
 class WyldCommitizen(BaseCommitizen):
     """
     Provide custom commitezen templates.
     """
+
+    # Only the subject line is a changelog entry, the indented body is not.
+    changelog_pattern = rf'^\[({TYPES_RE})\]'
+    commit_parser = (
+        rf'^\[(?P<change_type>{TYPES_RE})\]'
+        r'\[(?P<scope>[^\]]+)\]: (?P<message>.*)'
+    )
+    change_type_map = CHANGE_TYPES
+    change_type_order = list(CHANGE_TYPES.values())
+
+    # `find_increment` matches the first group of bump_pattern against bump_map.
+    bump_pattern = changelog_pattern
+    bump_map = {
+        r'^feat': MINOR,
+        r'^fix': PATCH,
+        r'^refactor': PATCH,
+    }
+    bump_map_major_version_zero = bump_map
 
     def questions(self) -> list[CzQuestion]:
         """Questions regarding the commit message."""
@@ -100,8 +129,7 @@ class WyldCommitizen(BaseCommitizen):
 
     def schema_pattern(self) -> str:
         """Regex matching the schema, used by `cz check`."""
-        types = '|'.join(COMMIT_TYPES)
-        return rf'^\[({types})\]\[[^\]]+\]: .+'
+        return rf'^\[({TYPES_RE})\]\[[^\]]+\]: .+'
 
     def info(self) -> str:
         """Explanation of the commit rules. (OPTIONAL)

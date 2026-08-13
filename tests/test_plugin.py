@@ -96,3 +96,49 @@ def test_schema_pattern_matches_generated_message(cz: WyldCommitizen) -> None:
 )
 def test_schema_pattern_rejects_invalid_messages(cz: WyldCommitizen, message: str) -> None:
     assert not re.match(cz.schema_pattern(), message)
+
+
+def test_commit_parser_extracts_changelog_entry(cz: WyldCommitizen) -> None:
+    parsed = re.match(cz.commit_parser, '[fix][sso/users]: update jwt signature check')
+
+    assert parsed
+    assert parsed.group('change_type') == 'fix'
+    assert parsed.group('scope') == 'sso/users'
+    assert parsed.group('message') == 'update jwt signature check'
+
+
+def test_changelog_pattern_skips_body_and_bump_commits(cz: WyldCommitizen) -> None:
+    commit = (
+        '[fix][sso]: update jwt signature check\n\n'
+        '    Update JWT signature validation check.\n'
+    )
+
+    assert re.match(cz.changelog_pattern, commit)
+    # the indented body must not become a changelog entry on its own
+    assert not re.match(cz.commit_parser, '    Update JWT signature validation check.')
+    assert not re.match(cz.changelog_pattern, 'bump: version 0.1.0 -> 0.2.0')
+
+
+@pytest.mark.parametrize(
+    ('message', 'expected'),
+    [
+        ('[feat][sso]: add jwt support', 'MINOR'),
+        ('[fix][sso]: update jwt signature check', 'PATCH'),
+        ('[refactor][env]: update development env', 'PATCH'),
+        ('[build][env]: update requirements', None),
+        ('[docs][readme]: update compatibility', None),
+    ],
+)
+def test_bump_map_covers_commit_types(
+    cz: WyldCommitizen,
+    message: str,
+    expected: str | None,
+) -> None:
+    keyword = re.search(cz.bump_pattern, message).group(1)
+    increments = {
+        increment
+        for pattern, increment in cz.bump_map.items()
+        if re.match(pattern, keyword)
+    }
+
+    assert increments == ({expected} if expected else set())
