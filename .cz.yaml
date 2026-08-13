@@ -3,7 +3,5 @@ commitizen:
   name: wyld_cz
   tag_format: $version
   update_changelog_on_bump: true
-  version_files:
-  - requirements.txt:wyld-cz
   version_provider: pep621
   version_scheme: semver
