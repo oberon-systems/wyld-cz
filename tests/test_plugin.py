@@ -67,6 +67,59 @@ def test_message_with_body_and_issue(cz: WyldCommitizen) -> None:
     ]
 
 
+def test_message_wraps_body_to_git_log_width(cz: WyldCommitizen) -> None:
+    answers = {
+        'type': 'docs',
+        'scope': 'claude',
+        'subject': 'add repository instructions for claude code',
+        'body': (
+            'Capture the plugin API traps and the release flow that are not visible '
+            'from the code itself, so future sessions do not rediscover them.'
+        ),
+    }
+
+    body_lines = cz.message(answers).splitlines()[2:]
+    longest = max(len(line) for line in body_lines)
+
+    assert all(line.startswith('    ') for line in body_lines)
+    # `git log` indents the whole message by four more columns, 76 + 4 = 80
+    assert longest <= 76
+    assert longest > 72
+
+
+def test_message_keeps_body_paragraphs(cz: WyldCommitizen) -> None:
+    answers = {
+        'type': 'feat',
+        'scope': 'sso',
+        'subject': 'add jwt support',
+        'body': 'Add JWT support for the auth backend.\n\nDrop the legacy session cookie.',
+        'issue': 'https://example.com/issue/342',
+    }
+
+    message = cz.message(answers)
+
+    assert message.splitlines() == [
+        '[feat][sso]: add jwt support',
+        '',
+        '    Add JWT support for the auth backend.',
+        '',
+        '    Drop the legacy session cookie.',
+        '',
+        '    https://example.com/issue/342',
+    ]
+
+
+def test_message_ignores_blank_body(cz: WyldCommitizen) -> None:
+    answers = {
+        'type': 'fix',
+        'scope': 'sso/users',
+        'subject': 'update jwt signature check',
+        'body': '   \n  \n',
+    }
+
+    assert cz.message(answers) == '[fix][sso/users]: update jwt signature check'
+
+
 def test_questions_offer_known_types(cz: WyldCommitizen) -> None:
     questions = {question['name']: question for question in cz.questions()}
     types = {choice['value'] for choice in questions['type']['choices']}

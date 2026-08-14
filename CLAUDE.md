@@ -9,8 +9,10 @@ Package lives in `src/wyld_cz/`, exposed through the entry point
 ```text
 [fix][sso/users]: update jwt signature check
 
-    Body paragraphs are indented by four spaces and wrapped at 116 columns
-    by fmt_body() in src/wyld_cz/utils.py.
+    Body paragraphs are indented by four spaces and wrapped by fmt_body()
+    in src/wyld_cz/utils.py, which keeps blank lines as paragraph breaks.
+    Its width is the one `git log` shows, 80: git prepends four columns of
+    its own, so the stored lines stay within 76.
 
     https://example.com/issue/342
 ```
