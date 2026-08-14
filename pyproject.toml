@@ -1,6 +1,6 @@
 [project]
 name = "wyld-cz"
-version = "0.2.0"
+version = "0.2.1"
 description = "A custom rules sets for commitizen"
 readme = "README.md"
 authors = [

@@ -1,3 +1,13 @@
+## 0.2.1 (2026-08-14)
+
+### Bug Fixes
+
+- **cz/utils**: keep body paragraphs and wrap them to 80 git log columns
+
+### Documentation
+
+- **claude**: add repository instructions for claude code
+
 ## 0.2.0 (2026-08-14)
 
 ### Features
