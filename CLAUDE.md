@@ -71,12 +71,16 @@ commas, flake8 allows 120 columns but **pylint only 100**.
 ## Release
 
 ```bash
-cz bump                  # increment is detected from commit types, no --increment needed
+make bump                     # increment is detected from commit types, no --increment needed
 git push origin main
-git push origin <tag>    # tags are lightweight, --follow-tags will not send them
-uv build && uv publish --token pypi-...
+git push origin <tag>         # tags are lightweight, --follow-tags will not send them
+PYPI_TOKEN=pypi-... make publish
 ```
 
+- `make` on its own prints the version and every target; `make publish` refuses to run
+  without `PYPI_TOKEN`, rebuilds `dist/` from scratch and uploads only the current version,
+  so the artifacts of older releases lying around in `dist/` are never re-uploaded;
+- `uv` is not a dependency of the dev env, install it separately — `make build` says so;
 - the version lives only in `pyproject.toml` (`version_provider: pep621` in `.cz.yaml`);
 - `allowed_prefixes` in `.cz.yaml` lists `bump:` so `cz check --rev-range` (and the
   `commitizen-branch` pre-push hook) accepts commitizen's own bump commit;
