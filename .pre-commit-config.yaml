@@ -1,3 +1,11 @@
+# The commit-msg hooks below only ever run once git has a commit-msg hook
+# script, which `pre-commit install` writes only when asked for that type.
+default_install_hook_types: [pre-commit, commit-msg]
+
+# A hook that declares no stage runs in every installed one, so at
+# commit-msg it would lint .git/COMMIT_EDITMSG instead of the tree.
+default_stages: [pre-commit]
+
 repos:
 - hooks:
   - id: check-added-large-files
