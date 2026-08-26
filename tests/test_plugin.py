@@ -2,6 +2,7 @@ import re
 import subprocess
 import sys
 
+import commitizen.bump
 import pytest
 from commitizen.config.base_config import BaseConfig
 
@@ -195,3 +196,23 @@ def test_bump_map_covers_commit_types(
     }
 
     assert increments == ({expected} if expected else set())
+
+
+def test_bump_message_defaults_to_ascii_without_any_config():
+    """A repository that sets nothing still gets `->` instead of an arrow."""
+    commitizen.bump.BUMP_MESSAGE = 'untouched'
+    WyldCommitizen(BaseConfig())
+
+    assert commitizen.bump.create_commit_message('1.0.0', '1.1.0', None) == (
+        'bump: version 1.0.0 -> 1.1.0'
+    )
+
+
+def test_a_repository_bump_message_still_wins():
+    """The plugin sets a default, it does not override a configured one."""
+    WyldCommitizen(BaseConfig())
+    template = 'release $current_version to $new_version'
+
+    assert commitizen.bump.create_commit_message('1.0.0', '1.1.0', template) == (
+        'release 1.0.0 to 1.1.0'
+    )

@@ -1,6 +1,8 @@
 from collections.abc import Mapping
 from typing import Any
 
+import commitizen.bump
+from commitizen.config.base_config import BaseConfig
 from commitizen.cz.base import BaseCommitizen
 from commitizen.defaults import MINOR, PATCH
 from commitizen.question import CzQuestion
@@ -25,6 +27,8 @@ CHANGE_TYPES = {
 
 TYPES_RE = '|'.join(COMMIT_TYPES)
 
+BUMP_MESSAGE = 'bump: version $current_version -> $new_version'
+
 
 class WyldCommitizen(BaseCommitizen):
     """
@@ -48,6 +52,12 @@ class WyldCommitizen(BaseCommitizen):
         r'^refactor': PATCH,
     }
     bump_map_major_version_zero = bump_map
+
+    def __init__(self, config: BaseConfig) -> None:
+        super().__init__(config)
+        # The plugin has no bump_message attribute, and commitizen reads
+        # this global late, so a repository's own bump_message still wins.
+        commitizen.bump.BUMP_MESSAGE = BUMP_MESSAGE
 
     def questions(self) -> list[CzQuestion]:
         """Questions regarding the commit message."""
