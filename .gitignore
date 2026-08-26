@@ -1,6 +1,12 @@
 # Created by https://www.toptal.com/developers/gitignore/api/go,python,virtualenv,pycharm+all
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,python,virtualenv,pycharm+all
 
+### Agents Settings ###
+.gemini/
+.claude/
+CLAUDE.local.md
+.mcp.json
+
 ### pre-commit hooks and cache ###
 .pre-commit
 .venv
