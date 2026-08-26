@@ -1,3 +1,15 @@
+## 0.2.2 (2026-08-26)
+
+### Features
+
+- **bump**: remove non-ascii symbols from commit message
+- **ai**: added agents settings
+
+### Build
+
+- **pre-commit**: pin file hooks to the pre-commit stage
+- **make**: drive the dev and release flow from a makefile
+
 ## 0.2.1 (2026-08-14)
 
 ### Bug Fixes
