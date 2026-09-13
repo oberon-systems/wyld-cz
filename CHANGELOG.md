@@ -1,3 +1,9 @@
+## 0.3.0 (2026-09-13)
+
+### Features
+
+- **changelog**: filter changelog by paths and publish to pypi from ci
+
 ## 0.2.2 (2026-08-26)
 
 ### Features
