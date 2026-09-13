@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import commitizen.bump
+from commitizen import git
 from commitizen.config.base_config import BaseConfig
 from commitizen.cz.base import BaseCommitizen
 from commitizen.defaults import MINOR, PATCH
@@ -58,6 +59,25 @@ class WyldCommitizen(BaseCommitizen):
         # The plugin has no bump_message attribute, and commitizen reads
         # this global late, so a repository's own bump_message still wins.
         commitizen.bump.BUMP_MESSAGE = BUMP_MESSAGE
+        self._changed_files: dict[str, list[str]] = {}
+
+    def changelog_message_builder_hook(
+        self,
+        message: dict[str, Any],
+        commit: git.GitCommit,
+    ) -> dict[str, Any] | None:
+        """Drop commits that touch nothing under `changelog_paths`, when it is set."""
+        paths = [path.strip('/') for path in self.config.settings.get('changelog_paths', [])]
+        if not paths:
+            return message
+        if commit.rev not in self._changed_files:
+            self._changed_files[commit.rev] = git.get_filenames_in_commit(commit.rev)
+        touched = any(
+            name == path or name.startswith(f'{path}/')
+            for name in self._changed_files[commit.rev]
+            for path in paths
+        )
+        return message if touched else None
 
     def questions(self) -> list[CzQuestion]:
         """Questions regarding the commit message."""

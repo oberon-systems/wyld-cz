@@ -34,6 +34,24 @@ environment as well:
   rev: v4.17.0
 ```
 
+### Changelog of one directory
+
+A repository that releases several things from separate `.cz.yaml` files can
+limit each changelog with `changelog_paths`. The paths are relative to the
+repository root, and a commit that changes nothing under any of them is left
+out of the changelog. Without the key every commit is kept.
+
+```yaml
+commitizen:
+  name: wyld_cz
+  changelog_file: CHANGELOG.md
+  changelog_paths:
+  - alpha
+  update_changelog_on_bump: true
+```
+
+The version increment of `cz bump` still counts every commit since the last tag.
+
 ## Commit style
 
 ```text
@@ -67,14 +85,26 @@ make lint     # run the pre-commit hooks over every file
 ## Release
 
 ```bash
-make bump                         # increment is detected from the commit types
+make bump              # increment is detected from the commit types
 git push origin main
-git push origin <tag>             # tags are lightweight, --follow-tags skips them
-PYPI_TOKEN=pypi-... make publish  # rebuilds dist/, uploads that version only
+git push origin <tag>  # tags are lightweight, --follow-tags skips them
 ```
 
-`make publish` refuses to run without `PYPI_TOKEN`. `uv` is not part of the dev
-environment and has to be installed separately.
+Pushing the tag starts the `publish` workflow in
+[GitHub Actions](https://docs.github.com/actions). It runs the tests on Python
+3.10, 3.12 and 3.14, checks the tag against the version in `pyproject.toml`,
+builds with `uv` and uploads to PyPI through
+[trusted publishing](https://docs.pypi.org/trusted-publishers/). The PyPI
+project needs a trusted publisher for this repository with the workflow
+`publish.yml` and the environment `pypi`.
+
+The manual upload stays as a fallback. `make publish` refuses to run without
+`PYPI_TOKEN`, rebuilds `dist/` and uploads that version only; `uv` is not part
+of the dev environment and has to be installed separately.
+
+```bash
+PYPI_TOKEN=pypi-... make publish
+```
 
 ## Contributing
 

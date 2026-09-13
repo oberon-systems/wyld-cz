@@ -51,7 +51,11 @@ Do not reorder those lines, do not "clean up" the unused import.
   `commit_parser`, which is why the parser must not match indented body text (otherwise every
   body line becomes its own changelog entry);
 - `find_increment` matches **group(1)** of `bump_pattern` against the keys of `bump_map`;
-- `major_version_zero: true` in `.cz.yaml` means `bump_map_major_version_zero` must be set too.
+- `major_version_zero: true` in `.cz.yaml` means `bump_map_major_version_zero` must be set too;
+- `changelog_message_builder_hook` is a method here: with `changelog_paths` in `.cz.yaml` it asks
+  `git show --name-only` per commit (cached by rev) and returns `None` for commits outside those
+  repo-root-relative paths, which drops them; commitizen keeps unknown `.cz.yaml` keys in
+  `config.settings`, and `cz bump` increments still count every commit.
 
 ## Dev environment
 
@@ -74,9 +78,11 @@ commas, flake8 allows 120 columns but **pylint only 100**.
 make bump                     # increment is detected from commit types, no --increment needed
 git push origin main
 git push origin <tag>         # tags are lightweight, --follow-tags will not send them
-PYPI_TOKEN=pypi-... make publish
 ```
 
+- the tag push runs `.github/workflows/publish.yml`: tests on 3.10/3.12/3.14, tag must equal
+  the `pyproject.toml` version, `uv build`, upload via PyPI trusted publishing (environment
+  `pypi`, no token in the repo); `PYPI_TOKEN=pypi-... make publish` is the manual fallback;
 - `make` on its own prints the version and every target; `make publish` refuses to run
   without `PYPI_TOKEN`, rebuilds `dist/` from scratch and uploads only the current version,
   so the artifacts of older releases lying around in `dist/` are never re-uploaded;

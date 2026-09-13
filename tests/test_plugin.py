@@ -1,10 +1,13 @@
 import re
 import subprocess
 import sys
+from collections.abc import Callable
+from pathlib import Path
 
 import commitizen.bump
 import pytest
 from commitizen.config.base_config import BaseConfig
+from commitizen.git import GitCommit
 
 from wyld_cz import WyldCommitizen
 
@@ -216,3 +219,61 @@ def test_a_repository_bump_message_still_wins():
     assert commitizen.bump.create_commit_message('1.0.0', '1.1.0', template) == (
         'release 1.0.0 to 1.1.0'
     )
+
+
+@pytest.fixture(name='commit_file')
+def commit_file_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[str], str]:
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ['git', *args],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    git('init', '-q')
+    git('config', 'user.name', 'alpha')
+    git('config', 'user.email', 'alpha@example.com')
+    git('config', 'commit.gpgsign', 'false')
+    monkeypatch.chdir(tmp_path)
+
+    def commit(path: str) -> str:
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(path)
+        git('add', path)
+        git('commit', '-q', '-m', f'[build][alpha]: add {path}')
+        return git('rev-parse', 'HEAD')
+
+    return commit
+
+
+def test_changelog_keeps_every_commit_without_changelog_paths(cz: WyldCommitizen) -> None:
+    message = {'message': 'add alpha'}
+
+    assert cz.changelog_message_builder_hook(message, GitCommit('HEAD', 'title')) == message
+
+
+@pytest.mark.parametrize(
+    ('path', 'kept'),
+    [
+        ('alpha/beta/image.hcl', True),
+        ('alpha/README.md', True),
+        ('gamma/app.py', False),
+        ('alpha-notes.md', False),
+    ],
+)
+def test_changelog_keeps_only_commits_under_changelog_paths(
+    commit_file: Callable[[str], str],
+    path: str,
+    kept: bool,
+) -> None:
+    config = BaseConfig()
+    config.update({'changelog_paths': ['alpha/']})
+    cz = WyldCommitizen(config)
+    message = {'message': f'add {path}'}
+
+    result = cz.changelog_message_builder_hook(message, GitCommit(commit_file(path), 'title'))
+
+    assert result == (message if kept else None)
