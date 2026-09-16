@@ -134,4 +134,4 @@ repos:
     stages:
     - pre-push
   repo: https://github.com/commitizen-tools/commitizen
-  rev: v4.17.0
+  rev: v4.18.1
