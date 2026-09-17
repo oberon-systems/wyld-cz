@@ -126,7 +126,7 @@ class WyldCommitizen(BaseCommitizen):
             message += fmt_body(answers['body'])
 
         if answers.get('issue'):
-            message += f"\n\n    {answers['issue']}"
+            message += f"\n\n    issue: {answers['issue']}"
 
         return message
 
