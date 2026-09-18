@@ -1,3 +1,14 @@
+## 0.3.1 (2026-09-18)
+
+### Bug Fixes
+
+- **changelog**: count only commits under changelog_paths in bump
+- **issue**: added issue prefix into commit message
+
+### Build
+
+- **dependencies**: update commitezen and pre-commit dependencies
+
 ## 0.3.0 (2026-09-13)
 
 ### Features
