@@ -34,7 +34,7 @@ environment as well:
   rev: v4.17.0
 ```
 
-### Changelog of one directory
+### Changelog and version of one directory
 
 A repository that releases several things from separate `.cz.yaml` files can
 limit each changelog with `changelog_paths`. The paths are relative to the
@@ -50,7 +50,8 @@ commitizen:
   update_changelog_on_bump: true
 ```
 
-The version increment of `cz bump` still counts every commit since the last tag.
+`cz bump` and `cz version --next` detect the version increment from the same
+commits, so a `feat` outside these paths does not raise the minor version.
 
 ## Commit style
 

@@ -55,7 +55,10 @@ Do not reorder those lines, do not "clean up" the unused import.
 - `changelog_message_builder_hook` is a method here: with `changelog_paths` in `.cz.yaml` it asks
   `git show --name-only` per commit (cached by rev) and returns `None` for commits outside those
   repo-root-relative paths, which drops them; commitizen keeps unknown `.cz.yaml` keys in
-  `config.settings`, and `cz bump` increments still count every commit.
+  `config.settings`;
+- commitizen has no hook for the commits a bump counts, so `__init__` replaces
+  `commitizen.bump.find_increment` with a method that drops the same commits before calling
+  the original; `cz bump` and `cz version --next` resolve it late, so the swap takes effect.
 
 ## Dev environment
 

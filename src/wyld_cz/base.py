@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import commitizen.bump
@@ -7,6 +7,7 @@ from commitizen.config.base_config import BaseConfig
 from commitizen.cz.base import BaseCommitizen
 from commitizen.defaults import MINOR, PATCH
 from commitizen.question import CzQuestion
+from commitizen.version_schemes import Increment
 
 from .utils import fmt_body
 
@@ -29,6 +30,8 @@ CHANGE_TYPES = {
 TYPES_RE = '|'.join(COMMIT_TYPES)
 
 BUMP_MESSAGE = 'bump: version $current_version -> $new_version'
+
+_find_increment = commitizen.bump.find_increment
 
 
 class WyldCommitizen(BaseCommitizen):
@@ -59,7 +62,35 @@ class WyldCommitizen(BaseCommitizen):
         # The plugin has no bump_message attribute, and commitizen reads
         # this global late, so a repository's own bump_message still wins.
         commitizen.bump.BUMP_MESSAGE = BUMP_MESSAGE
+        # commitizen has no hook for the commits a bump counts, and both
+        # `cz bump` and `cz version --next` look this function up late.
+        commitizen.bump.find_increment = self.find_increment
         self._changed_files: dict[str, list[str]] = {}
+
+    def _touches_paths(self, rev: str) -> bool:
+        paths = [path.strip('/') for path in self.config.settings.get('changelog_paths', [])]
+        if not paths:
+            return True
+        if rev not in self._changed_files:
+            self._changed_files[rev] = git.get_filenames_in_commit(rev)
+        return any(
+            name == path or name.startswith(f'{path}/')
+            for name in self._changed_files[rev]
+            for path in paths
+        )
+
+    def find_increment(
+        self,
+        commits: Sequence[git.GitCommit],
+        regex: str,
+        increments_map: Mapping[str, str],
+    ) -> Increment | None:
+        """Detect the increment only from commits under `changelog_paths`, when it is set."""
+        return _find_increment(
+            [commit for commit in commits if self._touches_paths(commit.rev)],
+            regex,
+            increments_map,
+        )
 
     def changelog_message_builder_hook(
         self,
@@ -67,17 +98,7 @@ class WyldCommitizen(BaseCommitizen):
         commit: git.GitCommit,
     ) -> dict[str, Any] | None:
         """Drop commits that touch nothing under `changelog_paths`, when it is set."""
-        paths = [path.strip('/') for path in self.config.settings.get('changelog_paths', [])]
-        if not paths:
-            return message
-        if commit.rev not in self._changed_files:
-            self._changed_files[commit.rev] = git.get_filenames_in_commit(commit.rev)
-        touched = any(
-            name == path or name.startswith(f'{path}/')
-            for name in self._changed_files[commit.rev]
-            for path in paths
-        )
-        return message if touched else None
+        return message if self._touches_paths(commit.rev) else None
 
     def questions(self) -> list[CzQuestion]:
         """Questions regarding the commit message."""

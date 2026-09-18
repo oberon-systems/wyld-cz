@@ -7,7 +7,7 @@ from pathlib import Path
 import commitizen.bump
 import pytest
 from commitizen.config.base_config import BaseConfig
-from commitizen.git import GitCommit
+from commitizen.git import GitCommit, get_commits
 
 from wyld_cz import WyldCommitizen
 
@@ -67,7 +67,7 @@ def test_message_with_body_and_issue(cz: WyldCommitizen) -> None:
         '',
         '    Add JWT support for the auth backend.',
         '',
-        '    https://example.com/issue/342',
+        '    issue: https://example.com/issue/342',
     ]
 
 
@@ -109,7 +109,7 @@ def test_message_keeps_body_paragraphs(cz: WyldCommitizen) -> None:
         '',
         '    Drop the legacy session cookie.',
         '',
-        '    https://example.com/issue/342',
+        '    issue: https://example.com/issue/342',
     ]
 
 
@@ -222,7 +222,7 @@ def test_a_repository_bump_message_still_wins():
 
 
 @pytest.fixture(name='commit_file')
-def commit_file_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[[str], str]:
+def commit_file_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Callable[..., str]:
     def git(*args: str) -> str:
         return subprocess.run(
             ['git', *args],
@@ -238,12 +238,12 @@ def commit_file_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Call
     git('config', 'commit.gpgsign', 'false')
     monkeypatch.chdir(tmp_path)
 
-    def commit(path: str) -> str:
+    def commit(path: str, message: str = '') -> str:
         target = tmp_path / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(path)
         git('add', path)
-        git('commit', '-q', '-m', f'[build][alpha]: add {path}')
+        git('commit', '-q', '-m', message or f'[build][alpha]: add {path}')
         return git('rev-parse', 'HEAD')
 
     return commit
@@ -277,3 +277,33 @@ def test_changelog_keeps_only_commits_under_changelog_paths(
     result = cz.changelog_message_builder_hook(message, GitCommit(commit_file(path), 'title'))
 
     assert result == (message if kept else None)
+
+
+@pytest.mark.parametrize(
+    ('changelog_paths', 'expected'),
+    [
+        (['alpha'], 'PATCH'),
+        ([], 'MINOR'),
+        (['gamma'], None),
+    ],
+)
+def test_bump_counts_only_commits_under_changelog_paths(
+    commit_file: Callable[..., str],
+    monkeypatch: pytest.MonkeyPatch,
+    changelog_paths: list[str],
+    expected: str | None,
+) -> None:
+    monkeypatch.setattr(commitizen.bump, 'find_increment', commitizen.bump.find_increment)
+    commit_file('main/app.py', '[feat][main]: add app')
+    commit_file('alpha/app.py', '[fix][alpha]: update app')
+    config = BaseConfig()
+    config.update({'changelog_paths': changelog_paths})
+    cz = WyldCommitizen(config)
+
+    increment = commitizen.bump.find_increment(
+        get_commits(),
+        regex=cz.bump_pattern,
+        increments_map=cz.bump_map,
+    )
+
+    assert increment == expected
