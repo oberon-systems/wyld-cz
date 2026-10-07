@@ -1,3 +1,9 @@
+## 0.4.0 (2026-10-07)
+
+### Features
+
+- **breaking**: add breaking changes and multiline answers
+
 ## 0.3.1 (2026-09-18)
 
 ### Bug Fixes
