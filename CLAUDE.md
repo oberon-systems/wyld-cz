@@ -65,9 +65,11 @@ Do not reorder those lines, do not "clean up" the unused import.
   repo-root-relative paths, which drops them; commitizen keeps unknown `.cz.yaml` keys in
   `config.settings`; for a `[!]` commit it returns a list, adding a `breaking` entry with the
   `BREAKING CHANGE:` text;
-- commitizen has no hook for the commits a bump counts, so `__init__` replaces
-  `commitizen.bump.find_increment` with a method that drops the same commits before calling
-  the original; `cz bump` and `cz version --next` resolve it late, so the swap takes effect.
+- the commits a bump counts are filtered by `filter_commits_before_bump`, which commitizen
+  >=4.19.1 calls itself in `cz bump` and `cz version --next`; older versions have no such hook
+  and call `commitizen.bump.find_increment` (removed in 4.19.1), so `__init__` replaces it
+  with a method that applies the same filter, only when that function exists — a bare
+  `commitizen.bump.find_increment` at import time breaks plugin discovery on 4.19.1+.
 
 ## Dev environment
 

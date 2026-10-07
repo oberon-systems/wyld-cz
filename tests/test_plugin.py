@@ -424,17 +424,31 @@ def test_bump_counts_only_commits_under_changelog_paths(
     changelog_paths: list[str],
     expected: str | None,
 ) -> None:
-    monkeypatch.setattr(commitizen.bump, 'find_increment', commitizen.bump.find_increment)
+    if hasattr(commitizen.bump, 'find_increment'):
+        monkeypatch.setattr(commitizen.bump, 'find_increment', commitizen.bump.find_increment)
     commit_file('main/app.py', '[feat][main]: add app')
     commit_file('alpha/app.py', '[fix][alpha]: update app')
     config = BaseConfig()
     config.update({'changelog_paths': changelog_paths})
     cz = WyldCommitizen(config)
 
-    increment = commitizen.bump.find_increment(
-        get_commits(),
-        regex=cz.bump_pattern,
-        increments_map=cz.bump_map,
-    )
+    assert next_increment(cz, get_commits()) == expected
 
-    assert increment == expected
+
+def next_increment(cz: WyldCommitizen, commits: list[GitCommit]) -> str | None:
+    """Detect the increment the way the installed commitizen does it."""
+    if hasattr(commitizen.bump, 'find_increment'):
+        return commitizen.bump.find_increment(
+            commits,
+            regex=cz.bump_pattern,
+            increments_map=cz.bump_map,
+        )
+    # pylint: disable-next=import-outside-toplevel,no-name-in-module
+    from commitizen.version_increment import VersionIncrement
+
+    increment = VersionIncrement.get_highest_by_messages(
+        (commit.message for commit in cz.filter_commits_before_bump(commits)),
+        cz.bump_pattern,
+        cz.bump_map,
+    )
+    return None if increment == VersionIncrement.NONE else str(increment)

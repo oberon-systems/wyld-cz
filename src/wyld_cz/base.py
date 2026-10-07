@@ -40,7 +40,8 @@ BREAKING_RE = re.compile(
 
 BUMP_MESSAGE = 'bump: version $current_version -> $new_version'
 
-_find_increment = commitizen.bump.find_increment
+# Removed in commitizen 4.19.1, which calls `filter_commits_before_bump` instead.
+_find_increment = getattr(commitizen.bump, 'find_increment', None)
 
 
 class WyldCommitizen(BaseCommitizen):
@@ -73,9 +74,10 @@ class WyldCommitizen(BaseCommitizen):
         # The plugin has no bump_message attribute, and commitizen reads
         # this global late, so a repository's own bump_message still wins.
         commitizen.bump.BUMP_MESSAGE = BUMP_MESSAGE
-        # commitizen has no hook for the commits a bump counts, and both
+        # Before 4.19.1 commitizen has no hook for the commits a bump counts, and both
         # `cz bump` and `cz version --next` look this function up late.
-        commitizen.bump.find_increment = self.find_increment
+        if _find_increment:
+            commitizen.bump.find_increment = self.find_increment
         self._changed_files: dict[str, list[str]] = {}
 
     def _touches_paths(self, rev: str) -> bool:
@@ -98,10 +100,14 @@ class WyldCommitizen(BaseCommitizen):
     ) -> Increment | None:
         """Detect the increment only from commits under `changelog_paths`, when it is set."""
         return _find_increment(
-            [commit for commit in commits if self._touches_paths(commit.rev)],
+            self.filter_commits_before_bump(list(commits)),
             regex,
             increments_map,
         )
+
+    def filter_commits_before_bump(self, commits: list[git.GitCommit]) -> list[git.GitCommit]:
+        """Count only commits under `changelog_paths` in a bump, when it is set."""
+        return [commit for commit in commits if self._touches_paths(commit.rev)]
 
     def changelog_message_builder_hook(
         self,
