@@ -10,12 +10,16 @@ Package lives in `src/wyld_cz/`, exposed through the entry point
 [fix][sso/users]: update jwt signature check
 
     Body paragraphs are indented by four spaces and wrapped by fmt_body()
-    in src/wyld_cz/utils.py, which keeps blank lines as paragraph breaks.
+    in src/wyld_cz/utils.py, which keeps typed line breaks and blank lines
+    as paragraph breaks.
     Its width is the one `git log` shows, 80: git prepends four columns of
     its own, so the stored lines stay within 76.
 
     https://example.com/issue/342
 ```
+
+A breaking commit is `[!][type][scope]: subject` plus an indented `BREAKING CHANGE:` block
+(header line, then the text, before `issue:`); `cz check` requires the text after `[!]`.
 
 Types live in `COMMIT_TYPES` (`src/wyld_cz/base.py`): `fix`, `feat`, `build`, `docs`, `refactor`.
 Everything else — question choices, `schema_pattern`, `changelog_pattern`, `bump_pattern` —
@@ -51,11 +55,16 @@ Do not reorder those lines, do not "clean up" the unused import.
   `commit_parser`, which is why the parser must not match indented body text (otherwise every
   body line becomes its own changelog entry);
 - `find_increment` matches **group(1)** of `bump_pattern` against the keys of `bump_map`;
+  `bump_pattern` is `^\[(!|types)\]`, so `[!]` is the keyword of a breaking commit and maps to
+  MAJOR (MINOR in `bump_map_major_version_zero`);
+- extra keys in a question dict (`multiline`, `when`, `validate`) are passed straight to
+  questionary even though `CzQuestion` does not declare them;
 - `major_version_zero: true` in `.cz.yaml` means `bump_map_major_version_zero` must be set too;
 - `changelog_message_builder_hook` is a method here: with `changelog_paths` in `.cz.yaml` it asks
   `git show --name-only` per commit (cached by rev) and returns `None` for commits outside those
   repo-root-relative paths, which drops them; commitizen keeps unknown `.cz.yaml` keys in
-  `config.settings`;
+  `config.settings`; for a `[!]` commit it returns a list, adding a `breaking` entry with the
+  `BREAKING CHANGE:` text;
 - commitizen has no hook for the commits a bump counts, so `__init__` replaces
   `commitizen.bump.find_increment` with a method that drops the same commits before calling
   the original; `cz bump` and `cz version --next` resolve it late, so the swap takes effect.

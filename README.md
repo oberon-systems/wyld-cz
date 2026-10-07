@@ -67,7 +67,36 @@ commits, so a `feat` outside these paths does not raise the minor version.
 
 The known types are `fix`, `feat`, `build`, `docs` and `refactor`. `feat` bumps
 the minor version, `fix` and `refactor` the patch one, the rest do not bump at
-all. Validate a message before committing:
+all.
+
+### Breaking changes
+
+`cz commit` asks whether the change breaks anything. A breaking commit gets the
+`[!]` mark in front of the subject and a mandatory `BREAKING CHANGE:` block:
+
+```text
+[!][fix][sso/users]: update jwt signature check
+
+    Reject weak signatures.
+
+    BREAKING CHANGE:
+    Tokens signed with HS256 are rejected now,
+    reissue them with RS256.
+
+    https://example.com/issue/342
+```
+
+A breaking commit of any type bumps the major version, or the minor one while
+`major_version_zero` is set, and the changelog lists its description under
+`Breaking Changes`. `cz check` rejects a `[!]` commit without the description.
+
+The body and the breaking change description are multiline: `Enter` starts a
+new line, `Esc` and then `Enter` (or `Alt+Enter`) submits the answer. Line
+breaks are kept, long lines are wrapped.
+
+### Validation
+
+Validate a message before committing:
 
 ```bash
 cz check --commit-msg-file <file>

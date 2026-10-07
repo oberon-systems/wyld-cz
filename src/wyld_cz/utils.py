@@ -14,23 +14,25 @@ def fmt_body(
 
     `width` is the line length as `git log` renders it: git prepends its own
     indent to every line of the message, so the stored lines are wrapped
-    `len(indent)` columns shorter.
+    `len(indent)` columns shorter. Line breaks typed by the user are kept,
+    blank lines collapse into a single paragraph break.
     """
     if not body:
         return ''
 
     paragraphs = [
-        textwrap.fill(
-            paragraph,
-            width=width - len(indent),
-            initial_indent=indent,
-            subsequent_indent=indent,
+        '\n'.join(
+            textwrap.fill(
+                line,
+                width=width - len(indent),
+                initial_indent=indent,
+                subsequent_indent=indent,
+            )
+            for line in paragraph.splitlines()
+            if line.strip()
         )
         for paragraph in PARAGRAPH_RE.split(body.strip())
         if paragraph.strip()
     ]
 
-    if not paragraphs:
-        return ''
-
-    return '\n\n' + '\n\n'.join(paragraphs)
+    return '\n\n'.join(paragraphs)

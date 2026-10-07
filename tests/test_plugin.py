@@ -124,12 +124,86 @@ def test_message_ignores_blank_body(cz: WyldCommitizen) -> None:
     assert cz.message(answers) == '[fix][sso/users]: update jwt signature check'
 
 
+def test_message_keeps_line_breaks_inside_paragraph(cz: WyldCommitizen) -> None:
+    answers = {
+        'type': 'feat',
+        'scope': 'sso',
+        'subject': 'add jwt support',
+        'body': 'Add JWT support:\n- sign tokens\n- verify tokens\n\n\n\nDrop the cookie.',
+    }
+
+    assert cz.message(answers).splitlines() == [
+        '[feat][sso]: add jwt support',
+        '',
+        '    Add JWT support:',
+        '    - sign tokens',
+        '    - verify tokens',
+        '',
+        '    Drop the cookie.',
+    ]
+
+
+def test_message_with_breaking_change(cz: WyldCommitizen) -> None:
+    answers = {
+        'type': 'fix',
+        'scope': 'sso',
+        'subject': 'update jwt signature check',
+        'body': 'Reject weak signatures.',
+        'is_breaking_change': True,
+        'breaking_change': 'HS256 tokens are rejected.\nReissue them with RS256.',
+        'issue': 'https://example.com/issue/342',
+    }
+
+    assert cz.message(answers).splitlines() == [
+        '[!][fix][sso]: update jwt signature check',
+        '',
+        '    Reject weak signatures.',
+        '',
+        '    BREAKING CHANGE:',
+        '    HS256 tokens are rejected.',
+        '    Reissue them with RS256.',
+        '',
+        '    issue: https://example.com/issue/342',
+    ]
+
+
+def test_message_without_breaking_change_ignores_its_text(cz: WyldCommitizen) -> None:
+    answers = {
+        'type': 'fix',
+        'scope': 'sso',
+        'subject': 'update jwt signature check',
+        'is_breaking_change': False,
+    }
+
+    assert cz.message(answers) == '[fix][sso]: update jwt signature check'
+
+
 def test_questions_offer_known_types(cz: WyldCommitizen) -> None:
     questions = {question['name']: question for question in cz.questions()}
     types = {choice['value'] for choice in questions['type']['choices']}
 
     assert types == {'fix', 'feat', 'build', 'docs', 'refactor'}
-    assert set(questions) == {'type', 'scope', 'subject', 'body', 'issue'}
+    assert set(questions) == {
+        'type',
+        'scope',
+        'subject',
+        'body',
+        'is_breaking_change',
+        'breaking_change',
+        'issue',
+    }
+
+
+def test_breaking_change_question_is_conditional_and_mandatory(cz: WyldCommitizen) -> None:
+    questions = {question['name']: question for question in cz.questions()}
+    breaking = questions['breaking_change']
+
+    assert questions['body']['multiline']
+    assert breaking['multiline']
+    assert not breaking['when']({'is_breaking_change': False})
+    assert breaking['when']({'is_breaking_change': True})
+    assert breaking['validate']('HS256 tokens are rejected.') is True
+    assert isinstance(breaking['validate']('  \n '), str)
 
 
 def test_schema_pattern_matches_generated_message(cz: WyldCommitizen) -> None:
@@ -143,12 +217,26 @@ def test_schema_pattern_matches_generated_message(cz: WyldCommitizen) -> None:
 
 
 @pytest.mark.parametrize(
+    'body',
+    [
+        '\n\n    BREAKING CHANGE:\n    HS256 tokens are rejected.',
+        '\n\n    Reject weak signatures.\n\nBREAKING CHANGE: HS256 tokens are rejected.',
+    ],
+)
+def test_schema_pattern_accepts_described_breaking_change(cz: WyldCommitizen, body: str) -> None:
+    assert re.match(cz.schema_pattern(), f'[!][fix][sso]: update jwt check{body}')
+
+
+@pytest.mark.parametrize(
     'message',
     [
         'broken message',
         '[unknown][env]: update development env',
         '[fix]: update development env',
         '[fix][env] update development env',
+        '[!][fix][env]: update development env',
+        '[!][fix][env]: update development env\n\n    BREAKING CHANGE:\n',
+        '[!][fix][env]: update development env\n\n    BREAKING CHANGE:\n\n    issue: 342',
     ],
 )
 def test_schema_pattern_rejects_invalid_messages(cz: WyldCommitizen, message: str) -> None:
@@ -162,6 +250,15 @@ def test_commit_parser_extracts_changelog_entry(cz: WyldCommitizen) -> None:
     assert parsed.group('change_type') == 'fix'
     assert parsed.group('scope') == 'sso/users'
     assert parsed.group('message') == 'update jwt signature check'
+
+
+def test_commit_parser_extracts_breaking_mark(cz: WyldCommitizen) -> None:
+    parsed = re.match(cz.commit_parser, '[!][feat][sso]: drop session cookie')
+
+    assert parsed
+    assert parsed.group('breaking') == '[!]'
+    assert parsed.group('change_type') == 'feat'
+    assert re.match(cz.changelog_pattern, '[!][feat][sso]: drop session cookie')
 
 
 def test_changelog_pattern_skips_body_and_bump_commits(cz: WyldCommitizen) -> None:
@@ -184,6 +281,8 @@ def test_changelog_pattern_skips_body_and_bump_commits(cz: WyldCommitizen) -> No
         ('[refactor][env]: update development env', 'PATCH'),
         ('[build][env]: update requirements', None),
         ('[docs][readme]: update compatibility', None),
+        ('[!][fix][sso]: update jwt signature check', 'MAJOR'),
+        ('[!][docs][readme]: drop compatibility', 'MAJOR'),
     ],
 )
 def test_bump_map_covers_commit_types(
@@ -199,6 +298,17 @@ def test_bump_map_covers_commit_types(
     }
 
     assert increments == ({expected} if expected else set())
+
+
+def test_breaking_change_bumps_minor_before_major_version_one(cz: WyldCommitizen) -> None:
+    keyword = re.search(cz.bump_pattern, '[!][fix][sso]: update jwt check').group(1)
+    increments = [
+        increment
+        for pattern, increment in cz.bump_map_major_version_zero.items()
+        if re.match(pattern, keyword)
+    ]
+
+    assert increments == ['MINOR']
 
 
 def test_bump_message_defaults_to_ascii_without_any_config():
@@ -253,6 +363,27 @@ def test_changelog_keeps_every_commit_without_changelog_paths(cz: WyldCommitizen
     message = {'message': 'add alpha'}
 
     assert cz.changelog_message_builder_hook(message, GitCommit('HEAD', 'title')) == message
+
+
+def test_changelog_lists_breaking_change_in_its_own_section(cz: WyldCommitizen) -> None:
+    message = {'breaking': '[!]', 'change_type': 'fix', 'scope': 'sso', 'message': 'update jwt'}
+    commit = GitCommit(
+        'HEAD',
+        '[!][fix][sso]: update jwt',
+        '    Reject weak signatures.\n\n'
+        '    BREAKING CHANGE:\n    HS256 tokens are rejected,\n    reissue them.\n\n'
+        '    issue: https://example.com/issue/342',
+    )
+
+    assert cz.changelog_message_builder_hook(message, commit) == [
+        {'change_type': 'fix', 'scope': 'sso', 'message': 'update jwt'},
+        {
+            'change_type': 'breaking',
+            'scope': 'sso',
+            'message': 'HS256 tokens are rejected, reissue them.',
+        },
+    ]
+    assert cz.change_type_order[0] == cz.change_type_map['breaking']
 
 
 @pytest.mark.parametrize(
