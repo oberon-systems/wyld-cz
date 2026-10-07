@@ -1,3 +1,9 @@
+## 0.4.1 (2026-10-07)
+
+### Bug Fixes
+
+- **commitizen**: use filter_commits_before_bump on commitizen 4.19.1+
+
 ## 0.4.0 (2026-10-07)
 
 ### Features
