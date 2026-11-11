@@ -1,3 +1,9 @@
+## 0.5.0 (2026-11-11)
+
+### Features
+
+- **changelog**: skip merge commits in the changelog and the bump
+
 ## 0.4.1 (2026-10-07)
 
 ### Bug Fixes
