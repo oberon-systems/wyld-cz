@@ -53,6 +53,11 @@ commitizen:
 `cz bump` and `cz version --next` detect the version increment from the same
 commits, so a `feat` outside these paths does not raise the minor version.
 
+Merge commits are left out of both, with or without `changelog_paths`. A
+pull request merged with a merge commit and titled `[feat][alpha]: ...`
+would otherwise list its title next to the commits it brings in, and could
+raise the version above what those commits claim.
+
 ## Commit style
 
 ```text

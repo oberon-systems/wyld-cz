@@ -44,6 +44,11 @@ BUMP_MESSAGE = 'bump: version $current_version -> $new_version'
 _find_increment = getattr(commitizen.bump, 'find_increment', None)
 
 
+def _is_merge(commit: git.GitCommit) -> bool:
+    # A merge commit repeats the commits it brings in, under the pull request title.
+    return len(getattr(commit, 'parents', None) or []) > 1
+
+
 class WyldCommitizen(BaseCommitizen):
     """
     Provide custom commitezen templates.
@@ -106,19 +111,23 @@ class WyldCommitizen(BaseCommitizen):
         )
 
     def filter_commits_before_bump(self, commits: list[git.GitCommit]) -> list[git.GitCommit]:
-        """Count only commits under `changelog_paths` in a bump, when it is set."""
-        return [commit for commit in commits if self._touches_paths(commit.rev)]
+        """Count neither merge commits nor, when it is set, commits outside `changelog_paths`."""
+        return [
+            commit
+            for commit in commits
+            if not _is_merge(commit) and self._touches_paths(commit.rev)
+        ]
 
     def changelog_message_builder_hook(
         self,
         message: dict[str, Any],
         commit: git.GitCommit,
     ) -> dict[str, Any] | None:
-        """Drop commits that touch nothing under `changelog_paths`, when it is set.
+        """Drop merge commits and, when it is set, commits outside `changelog_paths`.
 
         A breaking commit also gets an entry in the breaking changes section.
         """
-        if not self._touches_paths(commit.rev):
+        if _is_merge(commit) or not self._touches_paths(commit.rev):
             return None
         if not message.pop('breaking', None):
             return message

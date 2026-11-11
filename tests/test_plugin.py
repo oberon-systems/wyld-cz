@@ -435,6 +435,32 @@ def test_bump_counts_only_commits_under_changelog_paths(
     assert next_increment(cz, get_commits()) == expected
 
 
+def test_changelog_drops_merge_commits(cz: WyldCommitizen) -> None:
+    message = {'message': 'alpha feature'}
+    commit = GitCommit('HEAD', '[feat][alpha]: alpha feature', parents=['a1', 'b2'])
+
+    assert cz.changelog_message_builder_hook(message, commit) is None
+
+
+def test_bump_skips_merge_commits(
+    commit_file: Callable[..., str],
+    monkeypatch: pytest.MonkeyPatch,
+    cz: WyldCommitizen,
+) -> None:
+    if hasattr(commitizen.bump, 'find_increment'):
+        monkeypatch.setattr(commitizen.bump, 'find_increment', commitizen.bump.find_increment)
+    commit_file('main/app.py')
+    subprocess.run(['git', 'switch', '-q', '-c', 'topic'], check=True)
+    commit_file('alpha/app.py', '[fix][alpha]: update app')
+    subprocess.run(['git', 'switch', '-q', '-'], check=True)
+    subprocess.run(
+        ['git', 'merge', '-q', '--no-ff', 'topic', '-m', '[feat][alpha]: alpha feature'],
+        check=True,
+    )
+
+    assert next_increment(cz, get_commits()) == 'PATCH'
+
+
 def next_increment(cz: WyldCommitizen, commits: list[GitCommit]) -> str | None:
     """Detect the increment the way the installed commitizen does it."""
     if hasattr(commitizen.bump, 'find_increment'):
