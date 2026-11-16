@@ -18,7 +18,7 @@ jobs:
         - '3.12'
         - '3.14'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
@@ -35,7 +35,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Check the tag against pyproject.toml
       run: test "$GITHUB_REF_NAME" = "$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)"
     - uses: astral-sh/setup-uv@v6
