@@ -122,6 +122,16 @@ repos:
   repo: https://github.com/hadolint/hadolint
   rev: v2.13.1-beta
 - hooks:
+  - id: gitleaks
+  # The stock hook reads only the index, so `--all-files` never shows it a new file.
+  - alias: gitleaks-files
+    entry: bash -c 'for f; do gitleaks dir --redact --no-banner "$f" || exit 1; done' --
+    id: gitleaks
+    name: Detect hardcoded secrets in the files given
+    pass_filenames: true
+  repo: https://github.com/gitleaks/gitleaks
+  rev: v8.30.1
+- hooks:
   - id: check-useless-excludes
   repo: meta
 - hooks:

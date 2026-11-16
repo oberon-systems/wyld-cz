@@ -1,6 +1,47 @@
+---
+# Version updates wait 14 days after a release; security updates do not wait.
 version: 2
+
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
+  - package-ecosystem: pip
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: "[build][deps]"
+    groups:
+      python:
+        update-types: [minor, patch]
+    # The plugin supports commitizen <5; a major moves with the code by hand.
+    ignore:
+      - dependency-name: commitizen
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: "[build][deps]"
+    groups:
+      hooks:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*commitizen*"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: "[build][deps]"
+    groups:
+      actions:
+        update-types: [minor, patch]
